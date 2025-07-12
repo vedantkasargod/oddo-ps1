@@ -1,0 +1,30 @@
+# skill-swap-platform/.gitignore
+
+# Environment variables
+.env
+.env.*
+!.env.example
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# IDE and editor directories
+.vscode/
+.idea/
+.project
+.classpath
+
+# Build and distribution artifacts
+build/
+dist/
+*.egg-info/
+
+# Alembic
+.alembic_version
+
+# Docker cache
+.dockerignore
+docker-compose.override.yml
