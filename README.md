@@ -1,2 +1,6 @@
 # oddo-ps1
-Skill Swap Platform - By vedant , shlok and karan 
+1. Skill Swap Platform 
+Team:
+ - Vedant Kasargod
+ - Shlok
+ - Karan
