@@ -1,72 +1,53 @@
-"""
-main.py - FastAPI entrypoint for Skill Swap Platform Backend
-"""
-
-import os
-from fastapi import FastAPI, Depends, HTTPException
-from .database import get_db, engine, Base
-from . import models  # Import models to ensure they are registered with Base
-import redis.asyncio as aioredis  # For Redis connection
+# The final, correct version of backend/app/main.py
+from fastapi import FastAPI, Depends
+from fastapi.middleware.cors import CORSMiddleware
+from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import text # <-- ADD THIS IMPORT
-from redis.asyncio import Redis
-from typing import AsyncGenerator
+import os
+import redis.asyncio as aioredis
+from .database import get_db
+
+# --- ADD THIS IMPORT ---
+from .api.v1.endpoints import admin as admin_router
+from .api.v1.endpoints import admin as admin_user_router # Rename for clarity
+from .api.v1.endpoints import admin_messages as admin_message_router
 
 app = FastAPI(title="Skill Swap Platform Backend")
 
-async def get_redis_client() ->  AsyncGenerator[Redis, None]:
-    """
-    Dependency to provide a Redis client.
-    Uses REDIS_URL env var or defaults to localhost.
-    """
+origins = [
+    "http://localhost",
+    "http://localhost:3000", # The default port for Next.js
+]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# --- ADD THIS LINE ---
+app.include_router(admin_router.router, prefix="/api/v1/admin", tags=["Admin"])
+app.include_router(admin_message_router.router, prefix="/api/v1/admin/messages", tags=["Admin - Messaging"])
+
+async def get_redis_client():
     redis_url = os.getenv("REDIS_URL", "redis://localhost:6379")
-    redis_client = aioredis.from_url(redis_url)
+    redis = aioredis.from_url(redis_url, decode_responses=True)
     try:
-        yield redis_client
+        yield redis
     finally:
-        await redis_client.close()
-
-@app.on_event("startup")
-async def startup() -> None:
-    """
-    Application startup event handler.
-    """
-    print("Application starting up...")
-    # Uncomment below for local dev if not using Alembic
-    # async with engine.begin() as conn:
-    #     await conn.run_sync(Base.metadata.create_all)
-    print("Database models registered.")
-
-@app.on_event("shutdown")
-async def shutdown() -> None:
-    """
-    Application shutdown event handler.
-    """
-    print("Application shutting down.")
-    await engine.dispose()  # Close database connection pool
+        await redis.close()
 
 @app.get("/")
-async def read_root() -> dict:
-    """
-    Root endpoint for API.
-    """
+async def read_root():
     return {"message": "Welcome to the Skill Swap Platform API!"}
 
 @app.get("/healthcheck")
-async def healthcheck(
-    db: AsyncSession = Depends(get_db),
-    cache: Redis = Depends(get_redis_client)
-) -> dict:
-    """
-    Healthcheck endpoint to verify DB and Redis connectivity.
-    """
+async def healthcheck(db: AsyncSession = Depends(get_db), cache: aioredis.Redis = Depends(get_redis_client)):
     try:
-        # Test DB connection
-        await db.execute(text("SELECT 1")) # <-- WRAP IT IN text()
-        # Test Redis connection
+        await db.execute(text("SELECT 1"))
         await cache.ping()
         return {"status": "ok", "database": "connected", "redis": "connected"}
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Healthcheck failed: {e}")
-
-# Additional endpoints (authentication, user management, etc.) can be added below.
+        raise e
