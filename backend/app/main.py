@@ -11,6 +11,8 @@ from .database import get_db
 from .api.v1.endpoints import admin as admin_router
 from .api.v1.endpoints import admin as admin_user_router # Rename for clarity
 from .api.v1.endpoints import admin_messages as admin_message_router
+from .api.v1.endpoints import admin_stats as admin_stats_router
+
 
 app = FastAPI(title="Skill Swap Platform Backend")
 
@@ -30,6 +32,7 @@ app.add_middleware(
 # --- ADD THIS LINE ---
 app.include_router(admin_router.router, prefix="/api/v1/admin", tags=["Admin"])
 app.include_router(admin_message_router.router, prefix="/api/v1/admin/messages", tags=["Admin - Messaging"])
+app.include_router(admin_stats_router.router, prefix="/api/v1/admin/stats", tags=["Admin - Statistics"])
 
 async def get_redis_client():
     redis_url = os.getenv("REDIS_URL", "redis://localhost:6379")

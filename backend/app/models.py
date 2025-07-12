@@ -5,11 +5,13 @@ from sqlalchemy import Column, String, Boolean, Integer, Text, DateTime, Foreign
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 from .database import Base
+from sqlalchemy import text # Add this import
 
 class User(Base):
     __tablename__ = "users"
 
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    # In the User class
+    id = Column(UUID(as_uuid=True), primary_key=True, server_default=text("gen_random_uuid()"), default=uuid.uuid4)
     name = Column(String(255), nullable=False)
     email = Column(String(255), unique=True, nullable=False)
     password_hash = Column(String(255), nullable=False)
@@ -63,7 +65,7 @@ class UserWantedSkill(Base):
 class SwapRequest(Base):
     __tablename__ = "swap_requests"
 
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id = Column(UUID(as_uuid=True), primary_key=True, server_default=text("gen_random_uuid()"), default=uuid.uuid4)
     requester_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
     receiver_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
     requester_skill_id = Column(Integer, ForeignKey("skills.id"), nullable=False)
@@ -98,7 +100,7 @@ class Rating(Base):
 class AdminMessage(Base):
     __tablename__ = "admin_messages"
 
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id = Column(UUID(as_uuid=True), primary_key=True, server_default=text("gen_random_uuid()"), default=uuid.uuid4)
     admin_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
     content = Column(Text, nullable=False)
     created_at = Column(DateTime(timezone=True), default=datetime.utcnow, nullable=False)

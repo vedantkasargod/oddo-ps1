@@ -8,11 +8,14 @@ import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Badge } from "@/components/ui/badge"
 import { Users, MessageSquare, Settings, LogOut, Loader2 } from "lucide-react"
 import { Label } from "@/components/ui/label"
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 
 interface User {
   id: number
   username: string
+  name?: string
   email?: string
+  is_banned?: boolean
   created_at?: string
 }
 
@@ -33,6 +36,15 @@ export default function AdminDashboard() {
   const [isSendingMessage, setIsSendingMessage] = useState(false)
   const [sendMessageSuccess, setSendMessageSuccess] = useState("")
   const [sendMessageError, setSendMessageError] = useState("")
+
+  const [swapStats, setSwapStats] = useState({
+    pending: 0,
+    accepted: 0,
+    rejected: 0,
+    completed: 0,
+    cancelled: 0,
+  })
+  const [isUpdatingUser, setIsUpdatingUser] = useState<number | null>(null)
 
   const router = useRouter()
 
@@ -83,6 +95,25 @@ export default function AdminDashboard() {
       if (messagesResponse.ok) {
         const messagesData = await messagesResponse.json()
         setMessages(Array.isArray(messagesData) ? messagesData : [])
+      }
+
+      // Fetch swap statistics
+      const swapStatsResponse = await fetch("http://localhost:8000/api/v1/admin/stats/swaps/", {
+        method: "GET",
+        headers: {
+          "x-user-role": "admin",
+        },
+      })
+
+      if (swapStatsResponse.ok) {
+        const swapStatsData = await swapStatsResponse.json()
+        setSwapStats({
+          pending: swapStatsData.pending || 0,
+          accepted: swapStatsData.accepted || 0,
+          rejected: swapStatsData.rejected || 0,
+          completed: swapStatsData.completed || 0,
+          cancelled: swapStatsData.cancelled || 0,
+        })
       }
     } catch (err) {
       setError("Failed to fetch data from backend. Please check if the server is running.")
@@ -155,6 +186,54 @@ export default function AdminDashboard() {
       console.error("Failed to send platform message:", err)
     } finally {
       setIsSendingMessage(false)
+    }
+  }
+
+  const handleBanUser = async (userId: number) => {
+    setIsUpdatingUser(userId)
+    try {
+      const response = await fetch(`http://localhost:8000/api/v1/admin/users/${userId}/ban/`, {
+        method: "PUT",
+        headers: {
+          "x-user-role": "admin",
+        },
+      })
+
+      if (response.ok) {
+        // Update the user in the local state
+        setUsers((prevUsers) => prevUsers.map((user) => (user.id === userId ? { ...user, is_banned: true } : user)))
+      } else {
+        setError("Failed to ban user")
+      }
+    } catch (err) {
+      setError("Failed to ban user")
+      console.error("Ban user error:", err)
+    } finally {
+      setIsUpdatingUser(null)
+    }
+  }
+
+  const handleUnbanUser = async (userId: number) => {
+    setIsUpdatingUser(userId)
+    try {
+      const response = await fetch(`http://localhost:8000/api/v1/admin/users/${userId}/unban/`, {
+        method: "PUT",
+        headers: {
+          "x-user-role": "admin",
+        },
+      })
+
+      if (response.ok) {
+        // Update the user in the local state
+        setUsers((prevUsers) => prevUsers.map((user) => (user.id === userId ? { ...user, is_banned: false } : user)))
+      } else {
+        setError("Failed to unban user")
+      }
+    } catch (err) {
+      setError("Failed to unban user")
+      console.error("Unban user error:", err)
+    } finally {
+      setIsUpdatingUser(null)
     }
   }
 
@@ -231,6 +310,43 @@ export default function AdminDashboard() {
           </Card>
         </div>
 
+        {/* Swap Request Statistics */}
+        <Card className="mb-8">
+          <CardHeader>
+            <CardTitle>Swap Request Statistics</CardTitle>
+            <CardDescription>Overview of all skill swap requests by status</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+              <div className="text-center p-4 border rounded-lg">
+                <div className="text-2xl font-bold text-yellow-600">{swapStats.pending}</div>
+                <p className="text-sm font-medium text-yellow-600">Pending</p>
+                <p className="text-xs text-muted-foreground">Awaiting response</p>
+              </div>
+              <div className="text-center p-4 border rounded-lg">
+                <div className="text-2xl font-bold text-green-600">{swapStats.accepted}</div>
+                <p className="text-sm font-medium text-green-600">Accepted</p>
+                <p className="text-xs text-muted-foreground">Ready to proceed</p>
+              </div>
+              <div className="text-center p-4 border rounded-lg">
+                <div className="text-2xl font-bold text-red-600">{swapStats.rejected}</div>
+                <p className="text-sm font-medium text-red-600">Rejected</p>
+                <p className="text-xs text-muted-foreground">Declined requests</p>
+              </div>
+              <div className="text-center p-4 border rounded-lg">
+                <div className="text-2xl font-bold text-blue-600">{swapStats.completed}</div>
+                <p className="text-sm font-medium text-blue-600">Completed</p>
+                <p className="text-xs text-muted-foreground">Successfully finished</p>
+              </div>
+              <div className="text-center p-4 border rounded-lg">
+                <div className="text-2xl font-bold text-gray-600">{swapStats.cancelled}</div>
+                <p className="text-sm font-medium text-gray-600">Cancelled</p>
+                <p className="text-xs text-muted-foreground">Cancelled by users</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
         {/* Platform-Wide Message Section */}
         <Card className="mb-8">
           <CardHeader>
@@ -289,28 +405,70 @@ export default function AdminDashboard() {
         </Card>
 
         {/* Data Tables */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Users Table */}
+        <div className="grid grid-cols-1 gap-6">
+          {/* Enhanced User Management Table */}
           <Card>
             <CardHeader>
-              <CardTitle>Recent Users</CardTitle>
-              <CardDescription>Latest registered users in the system</CardDescription>
+              <CardTitle>User Management</CardTitle>
+              <CardDescription>Manage all users in the system - ban or unban users as needed</CardDescription>
             </CardHeader>
             <CardContent>
               {users.length > 0 ? (
-                <div className="space-y-2">
-                  {users.slice(0, 5).map((user) => (
-                    <div key={user.id} className="flex items-center justify-between p-2 border rounded">
-                      <div>
-                        <p className="font-medium">{user.username}</p>
-                        {user.email && <p className="text-sm text-muted-foreground">{user.email}</p>}
-                      </div>
-                      <Badge variant="secondary">ID: {user.id}</Badge>
-                    </div>
-                  ))}
+                <div className="rounded-md border">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Name</TableHead>
+                        <TableHead>Email</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead className="text-right">Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {users.map((user) => (
+                        <TableRow key={user.id}>
+                          <TableCell className="font-medium">
+                            {user.name || user.username || `User ${user.id}`}
+                          </TableCell>
+                          <TableCell>{user.email || "No email provided"}</TableCell>
+                          <TableCell>
+                            <Badge
+                              variant={user.is_banned ? "destructive" : "default"}
+                              className={user.is_banned ? "bg-red-100 text-red-800" : "bg-green-100 text-green-800"}
+                            >
+                              {user.is_banned ? "Banned" : "Active"}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="text-right">
+                            {user.is_banned ? (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="text-green-600 border-green-600 hover:bg-green-50 bg-transparent"
+                                onClick={() => handleUnbanUser(user.id)}
+                                disabled={isUpdatingUser === user.id}
+                              >
+                                {isUpdatingUser === user.id ? <Loader2 className="h-4 w-4 animate-spin" /> : "Unban"}
+                              </Button>
+                            ) : (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="text-red-600 border-red-600 hover:bg-red-50 bg-transparent"
+                                onClick={() => handleBanUser(user.id)}
+                                disabled={isUpdatingUser === user.id}
+                              >
+                                {isUpdatingUser === user.id ? <Loader2 className="h-4 w-4 animate-spin" /> : "Ban"}
+                              </Button>
+                            )}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
                 </div>
               ) : (
-                <p className="text-muted-foreground">No users found</p>
+                <p className="text-muted-foreground text-center py-8">No users found</p>
               )}
             </CardContent>
           </Card>
@@ -381,6 +539,9 @@ export default function AdminDashboard() {
                 <li>• GET /api/v1/admin/users/ (with x-user-role: admin header)</li>
                 <li>• GET /api/v1/admin/messages/ (with x-user-role: admin header)</li>
                 <li>• POST /api/v1/admin/messages/ (with x-user-role: admin header)</li>
+                <li>• GET /api/v1/admin/stats/swaps/ (with x-user-role: admin header)</li>
+                <li>• PUT /api/v1/admin/users/{"{user_id}"}/ban/ (with x-user-role: admin header)</li>
+                <li>• PUT /api/v1/admin/users/{"{user_id}"}/unban/ (with x-user-role: admin header)</li>
               </ul>
             </div>
           </CardContent>
