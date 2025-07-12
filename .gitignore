@@ -1,27 +1,44 @@
 # See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
 
-# dependencies
+# Local development dependencies and build artifacts (from your HEAD)
 /node_modules
-
-# next.js
 /.next/
 /out/
-
-# production
 /build
-
-# debug
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
-
-# env files
-.env*
-
-# vercel
-.vercel
-
-# typescript
 *.tsbuildinfo
 next-env.d.ts
+.vercel
+
+# Environment variables
+.env
+.env.*
+!.env.example
+# Your original .env* was a bit broad, .env and .env.* is standard.
+
+# Python specific ignores (from the remote)
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# IDE and editor directories (from the remote)
+.vscode/
+.idea/
+.project
+.classpath
+
+# Build and distribution artifacts (from the remote)
+build/ # Already present from your local, but good to keep explicitly.
+dist/
+*.egg-info/
+
+# Alembic (from the remote)
+.alembic_version
+
+# Docker cache (from the remote)
+.dockerignore
+docker-compose.override.yml

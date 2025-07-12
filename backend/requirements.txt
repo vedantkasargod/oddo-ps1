@@ -1,0 +1,9 @@
+# backend/requirements.txt
+fastapi==0.111.0
+uvicorn==0.30.1
+sqlalchemy[asyncio]==2.0.30 # For async SQLAlchemy
+asyncpg==0.29.0 # Async PostgreSQL driver for SQLAlchemy
+python-dotenv==1.0.1 # For loading .env files
+alembic==1.13.1 # For database migrations
+psycopg2-binary==2.9.9 # For Alembic to connect to PostgreSQL
+redis==5.0.4

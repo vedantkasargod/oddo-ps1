@@ -1,0 +1,59 @@
+# D:\odoo-ps1\docker-compose.yml (The Corrected Version)
+
+# The 'version' attribute is obsolete, but harmless. You can keep or remove it.
+version: '3.8'
+
+services:
+  db:
+    image: ankane/pgvector:latest
+    environment:
+      POSTGRES_DB: skillswap_db
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+    ports:
+      # This line correctly exposes the port to your network
+      - "0.0.0.0:5432:5432"
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U user -d skillswap_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    # --- THIS IS THE ONLY LINE WE ARE ADDING ---
+    # This tells the PostgreSQL server inside the container to listen for connections from any IP address.
+    command: postgres -c listen_addresses='*'
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend:/app
+    environment:
+      DATABASE_URL: postgresql+asyncpg://user:password@db:5432/skillswap_db
+      REDIS_URL: redis://redis:6379
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    command: sh -c "alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload"
+
+volumes:
+  db_data:
+  redis_data:
