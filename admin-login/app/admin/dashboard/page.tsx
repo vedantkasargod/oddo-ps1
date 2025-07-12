@@ -7,6 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Badge } from "@/components/ui/badge"
 import { Users, MessageSquare, Settings, LogOut, Loader2 } from "lucide-react"
+import { Label } from "@/components/ui/label"
 
 interface User {
   id: number
@@ -27,6 +28,12 @@ export default function AdminDashboard() {
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState("")
   const [adminUser, setAdminUser] = useState<string>("")
+
+  const [newMessage, setNewMessage] = useState("")
+  const [isSendingMessage, setIsSendingMessage] = useState(false)
+  const [sendMessageSuccess, setSendMessageSuccess] = useState("")
+  const [sendMessageError, setSendMessageError] = useState("")
+
   const router = useRouter()
 
   useEffect(() => {
@@ -111,6 +118,46 @@ export default function AdminDashboard() {
     }
   }
 
+  const sendPlatformMessage = async () => {
+    if (!newMessage.trim()) {
+      setSendMessageError("Please enter a message")
+      return
+    }
+
+    setIsSendingMessage(true)
+    setSendMessageError("")
+    setSendMessageSuccess("")
+
+    try {
+      const response = await fetch("http://localhost:8000/api/v1/admin/messages/", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-user-role": "admin",
+        },
+        body: JSON.stringify({
+          content: newMessage,
+        }),
+      })
+
+      if (response.ok) {
+        setSendMessageSuccess("Platform-wide message sent successfully!")
+        setNewMessage("") // Clear the textbox
+        fetchData() // Refresh the messages list
+
+        // Clear success message after 3 seconds
+        setTimeout(() => setSendMessageSuccess(""), 3000)
+      } else {
+        setSendMessageError("Failed to send message. Please try again.")
+      }
+    } catch (err) {
+      setSendMessageError("Failed to send message. Please check your connection.")
+      console.error("Failed to send platform message:", err)
+    } finally {
+      setIsSendingMessage(false)
+    }
+  }
+
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -183,6 +230,63 @@ export default function AdminDashboard() {
             </CardContent>
           </Card>
         </div>
+
+        {/* Platform-Wide Message Section */}
+        <Card className="mb-8">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <MessageSquare className="h-5 w-5" />
+              Send Platform-Wide Message
+            </CardTitle>
+            <CardDescription>Send a message to all users on the platform</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="platform-message">Message Content</Label>
+              <textarea
+                id="platform-message"
+                className="w-full min-h-[100px] p-3 border border-input rounded-md resize-vertical focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent"
+                placeholder="Enter your platform-wide message here..."
+                value={newMessage}
+                onChange={(e) => setNewMessage(e.target.value)}
+                disabled={isSendingMessage}
+              />
+            </div>
+
+            {sendMessageSuccess && (
+              <Alert>
+                <AlertDescription className="text-green-600">{sendMessageSuccess}</AlertDescription>
+              </Alert>
+            )}
+
+            {sendMessageError && (
+              <Alert variant="destructive">
+                <AlertDescription>{sendMessageError}</AlertDescription>
+              </Alert>
+            )}
+
+            <div className="flex justify-between items-center">
+              <p className="text-sm text-muted-foreground">{newMessage.length} characters</p>
+              <Button
+                onClick={sendPlatformMessage}
+                disabled={isSendingMessage || !newMessage.trim()}
+                className="min-w-[100px]"
+              >
+                {isSendingMessage ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Sending...
+                  </>
+                ) : (
+                  <>
+                    <MessageSquare className="mr-2 h-4 w-4" />
+                    Send Message
+                  </>
+                )}
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
 
         {/* Data Tables */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

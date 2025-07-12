@@ -34,12 +34,6 @@ export default function HomePage() {
                   <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
               </Link>
-
-              <div className="mt-4 p-3 bg-gray-50 rounded-lg text-sm text-gray-600">
-                <p className="font-medium mb-1">Demo Credentials:</p>
-                <p>Username: vedant_admin</p>
-                <p>Password: odoo</p>
-              </div>
             </CardContent>
           </Card>
 

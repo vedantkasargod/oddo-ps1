@@ -31,3 +31,11 @@ async def send_platform_message(
     await db.commit()
     await db.refresh(message)
     return message
+
+@router.get("/", response_model=List[message_schema.AdminMessage], summary="Get All Platform-Wide Messages")
+async def get_all_admin_messages(db: AsyncSession = Depends(get_db)):
+    """
+    Get all platform-wide admin messages.
+    """
+    messages = await crud_admin_message.get_all_admin_messages(db)
+    return messages

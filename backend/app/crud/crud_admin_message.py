@@ -1,6 +1,7 @@
 # backend/app/crud/crud_admin_message.py
 import uuid
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.future import select
 from .. import models
 from ..schemas.admin_message import AdminMessageCreate
 
@@ -16,3 +17,7 @@ def create_admin_message(db: AsyncSession, *, message_in: AdminMessageCreate, ad
     # Note: We don't commit here. We'll commit in the API endpoint.
     # This is a common pattern to allow for more complex transactions.
     return db_message
+
+async def get_all_admin_messages(db: AsyncSession):
+    result = await db.execute(select(models.AdminMessage))
+    return result.scalars().all()

@@ -145,12 +145,6 @@ export default function LoginPage() {
               )}
             </Button>
           </form>
-
-          <div className="mt-6 text-center text-sm text-muted-foreground">
-            <p>Demo Credentials:</p>
-            <p>Username: vedant_admin</p>
-            <p>Password: odoo</p>
-          </div>
         </CardContent>
       </Card>
     </div>
